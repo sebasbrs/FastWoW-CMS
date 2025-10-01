@@ -62,6 +62,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         if db_session_hex != token_session:
             raise HTTPException(status_code=401, detail="Session mismatch or expired")
 
+        # enrich with role from cms.account
+        try:
+            role_row = await fetch_one("cms", "SELECT role FROM account WHERE username = %s", (username,))
+            if role_row and role_row.get("role") is not None:
+                payload["role"] = int(role_row.get("role"))
+            else:
+                payload["role"] = 1
+        except Exception:
+            payload["role"] = 1
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
@@ -114,7 +123,8 @@ async def register(req: RegisterRequest):
         raise HTTPException(status_code=500, detail=f"Failed to create auth account: {e}")
 
     try:
-        await execute("cms", "INSERT INTO account (username, credits, vote_points, last_login, session) VALUES (%s, %s, %s, NULL, NULL)", (username, 0, 0))
+        # role default 1 (logged)
+        await execute("cms", "INSERT INTO account (username, credits, vote_points, last_login, session, role) VALUES (%s, %s, %s, NULL, NULL, %s)", (username, 0, 0, 1))
     except Exception as e:
         try:
             await execute("auth", "DELETE FROM account WHERE username = %s", (username,))
@@ -169,7 +179,13 @@ async def login(req: LoginRequest):
         pass
 
     session_hex = session_key.hex()
-    token = _create_jwt({"sub": row.get("id"), "username": username, "session": session_hex})
+    # include role in JWT for faster checks (still validated against DB each request via get_current_user)
+    try:
+        role_row = await fetch_one("cms", "SELECT role FROM account WHERE username = %s", (username,))
+        user_role = int(role_row.get("role")) if role_row and role_row.get("role") is not None else 1
+    except Exception:
+        user_role = 1
+    token = _create_jwt({"sub": row.get("id"), "username": username, "session": session_hex, "role": user_role})
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -185,3 +201,16 @@ async def logout(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"DB error clearing session: {e}")
 
     return {"ok": True}
+
+
+def require_role(min_role: int):
+    async def _dep(user: dict = Depends(get_current_user)):
+        role = int(user.get("role", 1))
+        if role < min_role:
+            raise HTTPException(status_code=403, detail="Permisos insuficientes")
+        return user
+    return _dep
+
+
+require_logged = require_role(1)
+require_admin = require_role(2)

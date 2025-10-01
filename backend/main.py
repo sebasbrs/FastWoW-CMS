@@ -5,6 +5,7 @@ from db import db_pools, fetch_one
 from api.auth import router as auth_router
 from api.online import router as online_router
 from api.toppvp import router as toppvp_router
+from api.news import router as news_router
 
 app = FastAPI(title="FastWoW CMS Backend")
 
@@ -28,6 +29,7 @@ async def shutdown_event():
 app.include_router(auth_router)
 app.include_router(online_router)
 app.include_router(toppvp_router)
+app.include_router(news_router)
 
 
 @app.get("/", response_model=dict)

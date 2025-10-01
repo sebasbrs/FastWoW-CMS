@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `account` (
   `vote_points` INT UNSIGNED NOT NULL DEFAULT 0,
   `last_login` TIMESTAMP NULL DEFAULT NULL,
   `session` BINARY(40) DEFAULT NULL,
+  `role` TINYINT NOT NULL DEFAULT 1, -- 0=guest(reservado),1=logged(player),2=admin
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_account_username` (`username`),
@@ -43,7 +44,56 @@ CREATE TABLE IF NOT EXISTS `realms` (
   KEY `idx_realms_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- News / articles table
+CREATE TABLE IF NOT EXISTS `news` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `title` VARCHAR(200) NOT NULL,
+  `slug` VARCHAR(220) NOT NULL,
+  `summary` VARCHAR(500) DEFAULT NULL,
+  `content` MEDIUMTEXT NOT NULL,
+  `realm_id` INT UNSIGNED DEFAULT NULL, -- null => global news
+  `author_username` VARCHAR(32) NOT NULL,
+  `is_published` TINYINT(1) NOT NULL DEFAULT 0,
+  `published_at` DATETIME NULL DEFAULT NULL,
+  `priority` INT NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_news_slug` (`slug`),
+  KEY `idx_news_published_at` (`published_at`),
+  KEY `idx_news_realm_id` (`realm_id`),
+  CONSTRAINT `fk_news_realm_id` FOREIGN KEY (`realm_id`) REFERENCES `realms`(`realm_id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Comments for news
+CREATE TABLE IF NOT EXISTS `news_comments` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `news_id` INT UNSIGNED NOT NULL,
+  `author_username` VARCHAR(32) NOT NULL,
+  `content` TEXT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_news_comments_news_id` (`news_id`),
+  KEY `idx_news_comments_author` (`author_username`),
+  CONSTRAINT `fk_news_comments_news` FOREIGN KEY (`news_id`) REFERENCES `news`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Comments for news
+CREATE TABLE IF NOT EXISTS `news_comments` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `news_id` INT UNSIGNED NOT NULL,
+  `author_username` VARCHAR(32) NOT NULL,
+  `content` TEXT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_news_comments_news_id` (`news_id`),
+  KEY `idx_news_comments_created_at` (`created_at`),
+  CONSTRAINT `fk_news_comments_news` FOREIGN KEY (`news_id`) REFERENCES `news`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
 -- Notes:
 -- 1) `session` is BINARY(40) to store the 40-byte session_key used by web sessions.
--- 2) Credentials stored in `char_db_password` should be protected; in production use a secrets manager
+-- 2) `role` gestiona permisos básicos: 0=guest (no se usa en DB), 1=logged (por defecto), 2=admin.
+-- 3) Credentials stored in `char_db_password` should be protected; in production use a secrets manager
 --    or encrypt the column and restrict DB user permissions.
