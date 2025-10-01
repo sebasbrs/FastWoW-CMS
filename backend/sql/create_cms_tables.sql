@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS `realms` (
   -- SOAP connection details (for future use)
   `soap_enabled` TINYINT(1) NOT NULL DEFAULT 0,
   `soap_endpoint` VARCHAR(255) DEFAULT NULL,
+  `soap_uri` VARCHAR(5) DEFAULT NULL,
   `soap_user` VARCHAR(100) DEFAULT NULL,
   `soap_password` VARCHAR(255) DEFAULT NULL,
   `soap_timeout` INT UNSIGNED NOT NULL DEFAULT 30,

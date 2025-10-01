@@ -33,33 +33,3 @@ app.include_router(toppvp_router)
 @app.get("/", response_model=dict)
 async def root():
     return {"ok": True, "service": "FastWoW CMS Backend"}
-
-
-@app.get("/db/health", response_model=HealthResponse)
-async def db_health():
-    details = {}
-    problems = 0
-    for key in ("cms", "auth", "characters", "world"):
-        try:
-            row = await fetch_one(key, "SELECT 1 as ok")
-            healthy = bool(row and row.get("ok") == 1)
-            details[key] = "ok" if healthy else "bad"
-            if not healthy:
-                problems += 1
-        except Exception as e:
-            details[key] = f"error: {e}"
-            problems += 1
-    status = "ok" if problems == 0 else "degraded"
-    return HealthResponse(status=status, details=details)
-
-
-@app.get("/cms/siteinfo")
-async def get_site_info():
-    try:
-        row = await fetch_one("cms", "SELECT name, value FROM site_config LIMIT 1")
-        if not row:
-            raise HTTPException(status_code=404, detail="No site config found")
-        return row
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
