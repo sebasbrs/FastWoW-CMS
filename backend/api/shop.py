@@ -371,6 +371,36 @@ async def list_purchases(page: int = 1, page_size: int = 50, username: Optional[
     }
 
 
+@router.post('/purchases/{purchase_id}/resend')
+async def resend_purchase(purchase_id: int, force: bool = False, user: dict = Depends(require_logged)):
+    """Reintenta el envío SOAP de una compra.
+
+    - Si la compra ya fue enviada y `force=false`, devuelve estado sin reenviar.
+    - Si `force=true`, fuerza reenvío incluso si ya estaba marcada como enviada.
+    - Autorización: dueño de la compra o admin (role >=2).
+    """
+    purchase = await fetch_one('cms', 'SELECT * FROM shop_purchases WHERE id = %s', (purchase_id,))
+    if not purchase:
+        raise HTTPException(status_code=404, detail='Compra no encontrada')
+    is_admin = int(user.get('role', 1)) >= 2
+    if (purchase.get('username') != user.get('username')) and not is_admin:
+        raise HTTPException(status_code=403, detail='No autorizado')
+    if purchase.get('sent_via_soap') and not force:
+        return {'ok': True, 'already_sent': True, 'forced': False}
+    purchase_items = await fetch_all('cms', 'SELECT * FROM shop_purchase_items WHERE purchase_id = %s', (purchase_id,)) or []
+    if not purchase_items:
+        # compat: intento legacy single-item
+        if purchase.get('item_id'):
+            legacy_item = await fetch_one('cms', 'SELECT id AS shop_item_id, world_item_entry FROM shop_items WHERE id = %s', (purchase.get('item_id'),))
+            if legacy_item:
+                purchase_items = [{'world_item_entry': legacy_item.get('world_item_entry'), 'quantity': 1}]
+        if not purchase_items:
+            raise HTTPException(status_code=400, detail='Compra sin items asociados')
+    # Disparo async
+    asyncio.create_task(_deliver_purchase_via_soap(purchase, purchase_items))
+    return {'ok': True, 'queued': True, 'forced': force}
+
+
 # --------------- SOAP Delivery ---------------
 async def _deliver_purchase_via_soap(purchase_row: dict, purchase_items: list):
     """Envía el item al personaje por SOAP.
