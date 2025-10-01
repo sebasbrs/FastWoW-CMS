@@ -375,3 +375,104 @@ async def realm_status():
 
 	return {"realms": results}
 
+
+@app.get("/online")
+async def online_all(limit_per_realm: Optional[int] = 200, page: int = 1, page_size: int = 50):
+	"""Return online characters grouped by realm (only realms that are reachable/online).
+
+	Pagination params (applied per-realm):
+	- page (1-based)
+	- page_size (max 500)
+
+	If `page`/`page_size` are provided, they take precedence over `limit_per_realm`.
+	Uses connection info stored in `cms.realms` to query each realm's characters DB.
+	"""
+	# sanitize pagination
+	if page < 1:
+		page = 1
+	if page_size < 1:
+		page_size = 1
+	MAX_PAGE_SIZE = 500
+	if page_size > MAX_PAGE_SIZE:
+		page_size = MAX_PAGE_SIZE
+	# fetch realms that have connection info
+	try:
+		realms = await fetch_all("cms", "SELECT realm_id, name, char_db_host, char_db_port, char_db_user, char_db_password, char_db_name FROM realms")
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=f"Failed to read realms from CMS: {e}")
+
+	if not realms:
+		return {"realms": []}
+
+	async def fetch_chars_for_realm(r):
+		realm_id = r.get("realm_id")
+		name = r.get("name") or f"realm-{realm_id}"
+
+		host = r.get("char_db_host")
+		port = r.get("char_db_port") or 3306
+		user = r.get("char_db_user")
+		password = r.get("char_db_password")
+		dbname = r.get("char_db_name")
+
+		if not host or not user or not dbname:
+			return {"realm_id": realm_id, "name": name, "status": "no_connection_info", "characters": []}
+
+		# compute offsets/limits
+		use_pagination = True
+		if not page or not page_size:
+			use_pagination = False
+
+		try:
+			conn = await aiomysql.connect(host=host, port=int(port), user=user, password=password or "", db=dbname)
+			async with conn.cursor(aiomysql.DictCursor) as cur:
+				# total count
+				await cur.execute("SELECT COUNT(*) AS cnt FROM characters WHERE online = 1")
+				rcount = await cur.fetchone()
+				total = int(rcount.get("cnt") or 0)
+
+				if use_pagination:
+					offset = (page - 1) * page_size
+					limit = page_size
+				else:
+					offset = 0
+					limit = int(limit_per_realm or 200)
+
+				q = (
+					"SELECT c.guid, c.name, c.race, c.class, c.gender, c.level, g.name AS guild_name "
+					"FROM characters c "
+					"LEFT JOIN guild_member gm ON c.guid = gm.guid "
+					"LEFT JOIN guild g ON gm.guildid = g.guildid "
+					"WHERE c.online = 1 "
+					"ORDER BY c.level DESC, c.name ASC "
+					f"LIMIT {offset}, {limit}"
+				)
+				await cur.execute(q)
+				rows = await cur.fetchall()
+			conn.close()
+			await conn.wait_closed()
+		except Exception:
+			return {"realm_id": realm_id, "name": name, "status": "offline", "characters": []}
+
+		out = []
+		for row in rows:
+			out.append({
+				"guid": int(row.get("guid") or 0),
+				"name": row.get("name"),
+				"race": int(row.get("race") or 0),
+				"class": int(row.get("class") or 0),
+				"gender": int(row.get("gender") or 0),
+				"level": int(row.get("level") or 0),
+				"guild": row.get("guild_name"),
+			})
+
+		pagination = {"page": page, "page_size": limit, "total": total}
+		return {"realm_id": realm_id, "name": name, "status": "online", "pagination": pagination, "characters": out}
+
+	tasks = [fetch_chars_for_realm(r) for r in realms]
+	results = await asyncio.gather(*tasks)
+
+	# filter only realms that are online (status == 'online')
+	online_realms = [r for r in results if r.get("status") == "online"]
+
+	return {"realms": online_realms}
+
