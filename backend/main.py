@@ -2,12 +2,15 @@ from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 
 from db import db_pools, fetch_one, execute
+from db import fetch_all
 import hashlib
 import secrets
 from typing import Optional
 import time
 import jwt
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import aiomysql
+import asyncio
 
 from config import JWT_SECRET, JWT_ALGORITHM, JWT_EXP_SECONDS
 
@@ -277,4 +280,98 @@ async def logout(user: dict = Depends(get_current_user)):
 		raise HTTPException(status_code=500, detail=f"DB error clearing session: {e}")
 
 	return {"ok": True}
+
+
+@app.get("/realm_status")
+async def realm_status():
+	"""
+	Public endpoint returning status for all realms.
+
+	Assumptions:
+	- There is a `cms.realms` table with columns:
+		id, realm_id, name,
+		char_db_host, char_db_port, char_db_user, char_db_password, char_db_name
+	  (If your schema differs, adapt the column names accordingly.)
+	- `auth.realmlist` contains realm information and `auth.uptime` stores uptime per realm (lookup by realm_id).
+	- characters DB has table `characters` with `online` (1) and `race` integer columns.
+	"""
+
+	# race -> faction mapping from your spec (Alliance vs Horde)
+	alliance_races = {1, 3, 4, 7, 11}
+	horde_races = {2, 5, 6, 8, 10}
+
+	# fetch realms from cms
+	try:
+		realms = await fetch_all("cms", "SELECT id, realm_id, name, char_db_host, char_db_port, char_db_user, char_db_password, char_db_name FROM realms")
+	except Exception:
+		# fallback: try auth.realmlist if cms.realms not available
+		try:
+			realms = await fetch_all("auth", "SELECT id as id, id as realm_id, name, NULL as char_db_host, NULL as char_db_port, NULL as char_db_user, NULL as char_db_password, NULL as char_db_name FROM realmlist")
+		except Exception as e:
+			raise HTTPException(status_code=500, detail=f"Failed to list realms: {e}")
+
+	if not realms:
+		return {"realms": []}
+
+	async def process_realm(r):
+		realm_id = r.get("realm_id")
+		name = r.get("name") or f"realm-{realm_id}"
+
+		# uptime from auth.uptime (assume column realm_id and uptime seconds)
+		uptime = None
+		try:
+			up_row = await fetch_one("auth", "SELECT uptime FROM uptime WHERE realm_id = %s", (realm_id,))
+			if up_row:
+				uptime = up_row.get("uptime")
+		except Exception:
+			uptime = None
+
+		# default counts
+		total_online = 0
+		alliance = 0
+		horde = 0
+
+		host = r.get("char_db_host")
+		port = r.get("char_db_port") or 3306
+		user = r.get("char_db_user")
+		password = r.get("char_db_password")
+		dbname = r.get("char_db_name")
+
+		if host and user and dbname:
+			# try to connect to the characters DB for this realm
+			try:
+				conn = await aiomysql.connect(host=host, port=int(port), user=user, password=password or "", db=dbname)
+				async with conn.cursor(aiomysql.DictCursor) as cur:
+					await cur.execute("SELECT COUNT(*) AS cnt FROM characters WHERE online = 1")
+					r1 = await cur.fetchone()
+					total_online = int(r1.get("cnt") or 0)
+
+					await cur.execute("SELECT race, COUNT(*) AS cnt FROM characters WHERE online = 1 GROUP BY race")
+					rows = await cur.fetchall()
+					for row in rows:
+						race = int(row.get("race") or 0)
+						cnt = int(row.get("cnt") or 0)
+						if race in alliance_races:
+							alliance += cnt
+						elif race in horde_races:
+							horde += cnt
+						else:
+							# unknown races count toward total but not faction
+							pass
+
+				conn.close()
+				await conn.wait_closed()
+			except Exception:
+				# realm appears offline or unreachable
+				return {"id": realm_id, "name": name, "online": 0, "alliance": 0, "horde": 0, "uptime": uptime, "status": "offline"}
+		else:
+			# no connection info; mark as unknown/offline
+			return {"id": realm_id, "name": name, "online": 0, "alliance": 0, "horde": 0, "uptime": uptime, "status": "no_connection_info"}
+
+		return {"id": realm_id, "name": name, "online": total_online, "alliance": alliance, "horde": horde, "uptime": uptime, "status": "online"}
+
+	tasks = [process_realm(r) for r in realms]
+	results = await asyncio.gather(*tasks)
+
+	return {"realms": results}
 

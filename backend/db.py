@@ -53,6 +53,16 @@ async def fetch_one(pool_key: str, query: str, params: Optional[tuple] = None) -
             return await cur.fetchone()
 
 
+async def fetch_all(pool_key: str, query: str, params: Optional[tuple] = None) -> Optional[list]:
+    pool = db_pools.get_pool(pool_key)
+    if pool is None:
+        raise RuntimeError(f"Pool for {pool_key} is not initialized")
+    async with pool.acquire() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(query, params or ())
+            return await cur.fetchall()
+
+
 async def execute(pool_key: str, query: str, params: Optional[tuple] = None) -> int:
     """Execute a statement (INSERT/UPDATE/DELETE). Returns affected rowcount."""
     pool = db_pools.get_pool(pool_key)
