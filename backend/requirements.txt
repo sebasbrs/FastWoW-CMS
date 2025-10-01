@@ -1,3 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
 gunicorn
+aiomysql
+python-dotenv
+PyJWT
