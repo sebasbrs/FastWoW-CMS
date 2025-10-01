@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS `realms` (
   `char_db_password` VARCHAR(255) NOT NULL,
   `char_db_name` VARCHAR(100) NOT NULL,
   `description` TEXT,
-  -- SOAP connection details (for future use)
   `soap_enabled` TINYINT(1) NOT NULL DEFAULT 0,
   `soap_endpoint` VARCHAR(255) DEFAULT NULL,
   `soap_uri` VARCHAR(5) DEFAULT NULL,
@@ -74,21 +73,56 @@ CREATE TABLE IF NOT EXISTS `news_comments` (
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_news_comments_news_id` (`news_id`),
+  KEY `idx_news_comments_created_at` (`created_at`),
   KEY `idx_news_comments_author` (`author_username`),
-  CONSTRAINT `fk_news_comments_news` FOREIGN KEY (`news_id`) REFERENCES `news`(`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_news_comments_news` FOREIGN KEY (`news_id`) REFERENCES `news`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Comments for news
-CREATE TABLE IF NOT EXISTS `news_comments` (
+-- Forum categories
+CREATE TABLE IF NOT EXISTS `forum_categories` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `news_id` INT UNSIGNED NOT NULL,
-  `author_username` VARCHAR(32) NOT NULL,
-  `content` TEXT NOT NULL,
+  `name` VARCHAR(120) NOT NULL,
+  `slug` VARCHAR(140) NOT NULL,
+  `description` TEXT NULL,
+  `position` INT NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_news_comments_news_id` (`news_id`),
-  KEY `idx_news_comments_created_at` (`created_at`),
-  CONSTRAINT `fk_news_comments_news` FOREIGN KEY (`news_id`) REFERENCES `news`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+  UNIQUE KEY `uq_forum_categories_slug` (`slug`),
+  KEY `idx_forum_categories_position` (`position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Forum topics
+CREATE TABLE IF NOT EXISTS `forum_topics` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `category_id` INT UNSIGNED NOT NULL,
+  `title` VARCHAR(200) NOT NULL,
+  `author_username` VARCHAR(32) NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `last_post_at` TIMESTAMP NULL DEFAULT NULL,
+  `posts_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `is_locked` TINYINT(1) NOT NULL DEFAULT 0,
+  `is_pinned` TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_forum_topics_category` (`category_id`),
+  KEY `idx_forum_topics_last_post_at` (`last_post_at`),
+  KEY `idx_forum_topics_pinned` (`is_pinned`),
+  CONSTRAINT `fk_forum_topics_category` FOREIGN KEY (`category_id`) REFERENCES `forum_categories`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Forum posts
+CREATE TABLE IF NOT EXISTS `forum_posts` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `topic_id` INT UNSIGNED NOT NULL,
+  `author_username` VARCHAR(32) NOT NULL,
+  `content` MEDIUMTEXT NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_forum_posts_topic` (`topic_id`),
+  KEY `idx_forum_posts_author` (`author_username`),
+  CONSTRAINT `fk_forum_posts_topic` FOREIGN KEY (`topic_id`) REFERENCES `forum_topics`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
