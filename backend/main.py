@@ -8,6 +8,7 @@ from api.toppvp import router as toppvp_router
 from api.news import router as news_router
 from api.forum import router as forum_router
 from api.profile import router as profile_router
+from api.armory import router as armory_router
 
 app = FastAPI(title="FastWoW CMS Backend")
 
@@ -34,6 +35,7 @@ app.include_router(toppvp_router)
 app.include_router(news_router)
 app.include_router(forum_router)
 app.include_router(profile_router)
+app.include_router(armory_router)
 
 
 @app.get("/", response_model=dict)
