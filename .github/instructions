@@ -1,0 +1,41 @@
+# Contexto del Proyecto
+
+Este repositorio corresponde a un panel web para gestionar un servidor privado de World of Warcraft con AzerothCore.  
+Las funcionalidades incluyen:  
+- Creación y gestión de cuentas.  
+- Visualización del estado del servidor (jugadores online, uptime, etc.).  
+- Noticias y foros.  
+- Integración futura de herramientas de administración (GM tools).  
+
+## Arquitectura
+
+- **Frontend:** Angular (SPA/PWA).  
+- **Backend:** FastAPI (Python).  
+- **Infraestructura:** Monorepo desplegado en Vercel.  
+
+### Estructura de carpetas
+my-wow-app/  
+├── frontend/ # Angular SPA/PWA  
+├── backend/ # FastAPI backend  
+├── vercel.json # Configuración de rutas y builds  
+└── README.md
+
+### Configuración en Vercel
+- Angular se compila estáticamente (`ng build`) y se sirve desde `frontend/dist/...`.  
+- FastAPI se ejecuta en serverless functions con `@vercel/python`.  
+- Rutas en `vercel.json`:
+  - `/api/*` → `backend/main.py` (FastAPI)  
+  - `/*` → `frontend/dist/frontend/index.html` (Angular SPA)
+
+### Consideraciones
+- Angular usa rutas relativas para la API: `environment.apiUrl = '/api'`.  
+- FastAPI expone endpoints iniciales de ejemplo (`/api/status`, `/api/news`).  
+- CORS habilitado para el dominio del frontend.  
+- PWA soportado con `ng add @angular/pwa`.  
+- Rewrites configurados para que Angular SPA maneje el routing.  
+
+## Objetivo para Copilot
+
+- Asistir en la construcción de funciones del backend en FastAPI (registro de usuarios, noticias, foros, estado del servidor).  
+- Asistir en la creación de componentes Angular que consuman los endpoints expuestos.  
+- Mantener compatibilidad con la arquitectura monorepo y despliegue en Vercel.  
