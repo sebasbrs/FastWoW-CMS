@@ -4,3 +4,4 @@ gunicorn
 aiomysql
 python-dotenv
 PyJWT
+aiohttp

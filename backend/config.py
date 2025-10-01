@@ -71,3 +71,29 @@ SMTP_STARTTLS = _env_or("SMTP_STARTTLS", "1") == "1"
 EMAIL_FROM = _env_or("EMAIL_FROM", "no-reply@example.com")
 PASSWORD_RESET_TOKEN_EXP_MIN = int(_env_or("PASSWORD_RESET_TOKEN_EXP_MIN", "30"))
 EMAIL_VERIFICATION_TOKEN_EXP_MIN = int(_env_or("EMAIL_VERIFICATION_TOKEN_EXP_MIN", "1440"))  # 24h por defecto
+
+# SOAP (AzerothCore remote console) configuration.
+# Para soportar múltiples realms se pueden definir variables específicas por realm:
+#   SOAP_REALM_<ID>_HOST, SOAP_REALM_<ID>_PORT, SOAP_REALM_<ID>_USER, SOAP_REALM_<ID>_PASSWORD
+# Si no existen, se usan los valores por defecto SOAP_DEFAULT_*
+SOAP_DEFAULT_HOST = _env_or("SOAP_DEFAULT_HOST", "")
+SOAP_DEFAULT_PORT = int(_env_or("SOAP_DEFAULT_PORT", "7878"))  # puerto típico console
+SOAP_DEFAULT_USER = _env_or("SOAP_DEFAULT_USER", "")
+SOAP_DEFAULT_PASSWORD = _env_or("SOAP_DEFAULT_PASSWORD", "")
+
+def get_soap_realm_config(realm_id: int | None):
+    """Devuelve la configuración SOAP para un realm o None si no hay host definido.
+
+    Prioridad: variables específicas del realm -> variables por defecto.
+    """
+    import os
+    prefix = f"SOAP_REALM_{realm_id}_" if realm_id is not None else "SOAP_DEFAULT_"
+    host = os.getenv(f"{prefix}HOST") or SOAP_DEFAULT_HOST
+    if not host:
+        return None
+    port = int(os.getenv(f"{prefix}PORT") or SOAP_DEFAULT_PORT)
+    user = os.getenv(f"{prefix}USER") or SOAP_DEFAULT_USER
+    password = os.getenv(f"{prefix}PASSWORD") or SOAP_DEFAULT_PASSWORD
+    if not user or not password:
+        return None
+    return {"host": host, "port": port, "user": user, "password": password}

@@ -73,3 +73,45 @@ async def execute(pool_key: str, query: str, params: Optional[tuple] = None) -> 
             await cur.execute(query, params or ())
             # return a tuple (rowcount, lastrowid) where lastrowid may be 0 if not applicable
             return cur.rowcount, getattr(cur, "lastrowid", 0)
+
+
+class Transaction:
+    def __init__(self, conn):
+        self.conn = conn
+        self._done = False
+
+    async def commit(self):
+        if not self._done:
+            await self.conn.commit()
+            self._done = True
+
+    async def rollback(self):
+        if not self._done:
+            await self.conn.rollback()
+            self._done = True
+
+
+async def begin_transaction(pool_key: str):
+    pool = db_pools.get_pool(pool_key)
+    if pool is None:
+        raise RuntimeError(f"Pool for {pool_key} is not initialized")
+    conn = await pool.acquire()
+    # autocommit false for explicit control
+    await conn.begin()
+    return conn, Transaction(conn)
+
+async def release_connection(pool_key: str, conn):
+    pool = db_pools.get_pool(pool_key)
+    if pool:
+        pool.release(conn)
+
+async def tx_execute(conn, query: str, params: Optional[tuple] = None, dict_cursor=False):
+    cur_cls = aiomysql.DictCursor if dict_cursor else None
+    async with conn.cursor(cur_cls) as cur:
+        await cur.execute(query, params or ())
+        return cur.rowcount, getattr(cur, 'lastrowid', 0)
+
+async def tx_fetch_one(conn, query: str, params: Optional[tuple] = None):
+    async with conn.cursor(aiomysql.DictCursor) as cur:
+        await cur.execute(query, params or ())
+        return await cur.fetchone()

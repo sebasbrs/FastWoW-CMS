@@ -152,6 +152,78 @@ CREATE TABLE IF NOT EXISTS `email_verification_tokens` (
   KEY `idx_evt_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Shop categories
+CREATE TABLE IF NOT EXISTS `shop_categories` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(120) NOT NULL,
+  `slug` VARCHAR(140) NOT NULL,
+  `description` TEXT NULL,
+  `position` INT NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_shop_categories_slug` (`slug`),
+  KEY `idx_shop_categories_position` (`position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Shop items
+CREATE TABLE IF NOT EXISTS `shop_items` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `category_id` INT UNSIGNED NOT NULL,
+  `name` VARCHAR(150) NOT NULL,
+  `description` TEXT NULL,
+  `icon` VARCHAR(120) NULL,
+  `world_item_entry` INT UNSIGNED NOT NULL,
+  `realm_id` INT UNSIGNED NULL, -- null => usable en todos los realms
+  `price_vote_points` INT UNSIGNED NOT NULL DEFAULT 0,
+  `price_credits` INT UNSIGNED NOT NULL DEFAULT 0,
+  `is_enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `limit_per_account` INT UNSIGNED NULL, -- null => sin límite
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_items_category` (`category_id`),
+  KEY `idx_shop_items_realm` (`realm_id`),
+  KEY `idx_shop_items_enabled` (`is_enabled`),
+  CONSTRAINT `fk_shop_items_category` FOREIGN KEY (`category_id`) REFERENCES `shop_categories`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Shop purchases log
+CREATE TABLE IF NOT EXISTS `shop_purchases` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(32) NOT NULL,
+  `item_id` INT UNSIGNED NULL, -- legado (para compras simples); ahora se usa tabla shop_purchase_items
+  `realm_id` INT UNSIGNED NULL,
+  `character_guid` BIGINT UNSIGNED NULL,
+  `character_name` VARCHAR(24) NULL,
+  `cost_vote_points` INT UNSIGNED NOT NULL DEFAULT 0,
+  `cost_credits` INT UNSIGNED NOT NULL DEFAULT 0,
+  `sent_via_soap` TINYINT(1) NOT NULL DEFAULT 0,
+  `soap_response` TEXT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_shop_purchases_user` (`username`),
+  KEY `idx_shop_purchases_item` (`item_id`),
+  KEY `idx_shop_purchases_realm` (`realm_id`),
+  KEY `idx_shop_purchases_char_guid` (`character_guid`),
+  CONSTRAINT `fk_shop_purchases_item` FOREIGN KEY (`item_id`) REFERENCES `shop_items`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Items individuales dentro de una compra (soporte multi-item / multi-stack)
+CREATE TABLE IF NOT EXISTS `shop_purchase_items` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `purchase_id` BIGINT UNSIGNED NOT NULL,
+  `shop_item_id` INT UNSIGNED NOT NULL,
+  `world_item_entry` INT UNSIGNED NOT NULL,
+  `quantity` INT UNSIGNED NOT NULL DEFAULT 1,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_purchase_items_purchase` (`purchase_id`),
+  KEY `idx_purchase_items_shop_item` (`shop_item_id`),
+  CONSTRAINT `fk_purchase_items_purchase` FOREIGN KEY (`purchase_id`) REFERENCES `shop_purchases`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_purchase_items_shop_item` FOREIGN KEY (`shop_item_id`) REFERENCES `shop_items`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- Notes:
 -- 1) `session` is BINARY(40) to store the 40-byte session_key used by web sessions.
