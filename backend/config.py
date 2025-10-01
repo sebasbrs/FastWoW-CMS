@@ -61,3 +61,13 @@ JWT_SECRET = _env_or("JWT_SECRET", "change-me-to-a-strong-secret")
 JWT_ALGORITHM = _env_or("JWT_ALGORITHM", "HS256")
 # token lifetime in seconds
 JWT_EXP_SECONDS = int(_env_or("JWT_EXP_SECONDS", "3600"))
+
+# SMTP / Email settings for password recovery
+SMTP_HOST = _env_or("SMTP_HOST", "localhost")
+SMTP_PORT = int(_env_or("SMTP_PORT", "25"))
+SMTP_USER = _env_or("SMTP_USER", "")
+SMTP_PASSWORD = _env_or("SMTP_PASSWORD", "")
+SMTP_STARTTLS = _env_or("SMTP_STARTTLS", "1") == "1"
+EMAIL_FROM = _env_or("EMAIL_FROM", "no-reply@example.com")
+PASSWORD_RESET_TOKEN_EXP_MIN = int(_env_or("PASSWORD_RESET_TOKEN_EXP_MIN", "30"))
+EMAIL_VERIFICATION_TOKEN_EXP_MIN = int(_env_or("EMAIL_VERIFICATION_TOKEN_EXP_MIN", "1440"))  # 24h por defecto

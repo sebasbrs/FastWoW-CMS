@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `account` (
   `last_login` TIMESTAMP NULL DEFAULT NULL,
   `session` BINARY(40) DEFAULT NULL,
   `role` TINYINT NOT NULL DEFAULT 1, -- 0=guest(reservado),1=logged(player),2=admin
+  `email_verified` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_account_username` (`username`),
@@ -123,6 +124,32 @@ CREATE TABLE IF NOT EXISTS `forum_posts` (
   KEY `idx_forum_posts_topic` (`topic_id`),
   KEY `idx_forum_posts_author` (`author_username`),
   CONSTRAINT `fk_forum_posts_topic` FOREIGN KEY (`topic_id`) REFERENCES `forum_topics`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Password reset tokens (OTP) for account recovery
+CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(32) NOT NULL,
+  `token` VARCHAR(64) NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `consumed` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_prt_username` (`username`),
+  KEY `idx_prt_token` (`token`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Email verification tokens
+CREATE TABLE IF NOT EXISTS `email_verification_tokens` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(32) NOT NULL,
+  `token` VARCHAR(64) NOT NULL,
+  `expires_at` DATETIME NOT NULL,
+  `consumed` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_evt_username` (`username`),
+  KEY `idx_evt_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
