@@ -6,7 +6,9 @@
       <a routerLink="/forum" routerLinkActive="active">Foro</a>
       <a routerLink="/shop" routerLinkActive="active">Tienda</a>
       <a routerLink="/pvp" routerLinkActive="active">PvP</a>
+  <a routerLink="/vote" routerLinkActive="active">Votar</a>
       <a routerLink="/profile" routerLinkActive="active">Perfil</a>
+  <a *ngIf="auth.isAdmin()" routerLink="/admin" routerLinkActive="active">Admin</a>
     </nav>
     <button class="menu-toggle" type="button" (click)="sidebarOpen = !sidebarOpen" aria-label="Abrir/cerrar sidebar">☰</button>
   </header>
@@ -48,7 +50,7 @@
       </ng-template>
       <section class="widget">
         <h3>Siguiente voto</h3>
-        <p class="text-muted">00:23:15</p>
+        <p class="text-muted">—</p>
       </section>
       <section class="widget">
         <h3>Realms</h3>

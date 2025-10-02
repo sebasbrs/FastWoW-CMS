@@ -19,17 +19,25 @@ export class ForumService {
   async fetchCategories(){
     this.loadingCategories.set(true);
     try {
-      const data = await fetch(API + '/categories').then(r => r.json());
-      this.categories.set(data);
+      const data = await this.http.get(API + '/categories').toPromise();
+      this.categories.set(data as any);
     } finally { this.loadingCategories.set(false); }
   }
 
   async fetchTopics(categoryId:number, page=1):Promise<ForumTopicsResponse>{
     const url = `${API}/categories/${categoryId}/topics?page=${page}`;
-    return fetch(url).then(r => r.json());
+    return this.http.get<ForumTopicsResponse>(url).toPromise() as any;
   }
 
   async fetchTopic(topicId:number):Promise<any>{
-    return fetch(`${API}/topics/${topicId}`).then(r => r.json());
+    return this.http.get(`${API}/topics/${topicId}`).toPromise();
+  }
+
+  async createTopic(categoryId:number, title:string, content:string){
+    return this.http.post(`${API}/categories/${categoryId}/topics`, { title, content }).toPromise();
+  }
+
+  async createPost(topicId:number, content:string){
+    return this.http.post(`${API}/topics/${topicId}/posts`, { content }).toPromise();
   }
 }

@@ -12,6 +12,7 @@ router = APIRouter(prefix="/vote", tags=["vote"])
 class VoteSiteCreate(BaseModel):
     name: str
     url: str
+    image_url: Optional[str] = None
     cooldown_minutes: int = 720
     points_reward: int = 1
     position: int = 0
@@ -19,6 +20,7 @@ class VoteSiteCreate(BaseModel):
 class VoteSiteUpdate(BaseModel):
     name: Optional[str] = None
     url: Optional[str] = None
+    image_url: Optional[str] = None
     cooldown_minutes: Optional[int] = None
     points_reward: Optional[int] = None
     position: Optional[int] = None
@@ -38,8 +40,8 @@ async def create_site(payload: VoteSiteCreate):
     if payload.cooldown_minutes < 1 or payload.points_reward < 1:
         raise HTTPException(status_code=400, detail='Valores inválidos')
     try:
-        _, sid = await execute('cms', 'INSERT INTO vote_sites (name, url, cooldown_minutes, points_reward, position) VALUES (%s,%s,%s,%s,%s)', (
-            payload.name.strip(), payload.url.strip(), payload.cooldown_minutes, payload.points_reward, payload.position
+        _, sid = await execute('cms', 'INSERT INTO vote_sites (name, url, image_url, cooldown_minutes, points_reward, position) VALUES (%s,%s,%s,%s,%s,%s)', (
+            payload.name.strip(), payload.url.strip(), (payload.image_url or '').strip() or None, payload.cooldown_minutes, payload.points_reward, payload.position
         ))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f'Error creando sitio: {e}')
@@ -62,6 +64,7 @@ async def update_site(site_id: int, payload: VoteSiteUpdate):
     mapping = {
         'name': payload.name,
         'url': payload.url,
+        'image_url': payload.image_url,
         'cooldown_minutes': payload.cooldown_minutes,
         'points_reward': payload.points_reward,
         'position': payload.position,

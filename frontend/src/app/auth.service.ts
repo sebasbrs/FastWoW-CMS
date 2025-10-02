@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from './environments';
 
 interface LoginResponse { access_token: string; token_type: string; }
-interface UserMe { username: string; credits: number; vote_points: number; gravatar: string; }
+interface UserMe { username: string; credits: number; vote_points: number; gravatar: string; role?: number; }
 
 const TOKEN_KEY = 'fw_token';
 const API_BASE = environment.apiBase + '/auth';
@@ -14,6 +14,7 @@ export class AuthService {
   private _user = signal<UserMe | null>(null);
   user = computed(() => this._user());
   isLogged = computed(() => !!this._user());
+  isAdmin = computed(() => (this._user()?.role || 1) >= 2);
 
   constructor(private http: HttpClient){
     const token = localStorage.getItem(TOKEN_KEY);

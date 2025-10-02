@@ -17,7 +17,7 @@ export class App {
   get isLogged(){ return this.auth.isLogged; }
   
 
-  constructor(private auth: AuthService){}
+  constructor(public auth: AuthService){}
 
   // Realm status widget state
   realmStatuses = signal<any[]>([]);

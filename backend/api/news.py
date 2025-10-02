@@ -110,6 +110,24 @@ async def list_news(page: int = 1, page_size: int = 10, realm_id: Optional[int] 
     items = [_serialize_news(r) for r in (rows or [])]
     return {'items': items, 'pagination': {'page': page, 'page_size': page_size, 'total': total}}
 
+@router.get('/news/admin', dependencies=[Depends(require_admin)])
+async def admin_list_news(page: int = 1, page_size: int = 20, realm_id: Optional[int] = None, include_unpublished: bool = True):
+    """Lista todas las noticias sin filtrar por publicación para el panel admin."""
+    if page < 1: page = 1
+    if page_size < 1: page_size = 1
+    if page_size > 200: page_size = 200
+    clauses = []
+    params: list[Any] = []
+    if realm_id is not None:
+        clauses.append('(realm_id = %s OR realm_id IS NULL)'); params.append(realm_id)
+    where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
+    total_row = await fetch_one('cms', f'SELECT COUNT(*) AS cnt FROM news{where}', tuple(params))
+    total = int(total_row.get('cnt') if total_row else 0)
+    offset = (page - 1) * page_size
+    rows = await fetch_all('cms', f'SELECT * FROM news{where} ORDER BY priority DESC, created_at DESC, id DESC LIMIT %s OFFSET %s', (*params, page_size, offset))
+    items = [_serialize_news(r) for r in (rows or [])]
+    return { 'items': items, 'pagination': { 'page': page, 'page_size': page_size, 'total': total } }
+
 
 @router.get('/news/{id_or_slug}')
 async def get_news(id_or_slug: str):

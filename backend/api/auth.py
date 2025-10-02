@@ -157,7 +157,8 @@ async def me(user: dict = Depends(get_current_user)):
         'username': username,
         'credits': int((acct or {}).get('credits') or 0),
         'vote_points': int((acct or {}).get('vote_points') or 0),
-        'gravatar': gravatar_url
+        'gravatar': gravatar_url,
+        'role': int(user.get('role', 1))
     }
 
 

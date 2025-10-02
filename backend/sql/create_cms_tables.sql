@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS `vote_sites` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(120) NOT NULL,
   `url` VARCHAR(500) NOT NULL,
+  `image_url` VARCHAR(500) NULL,
   `cooldown_minutes` INT UNSIGNED NOT NULL DEFAULT 720, -- 12h por defecto
   `points_reward` INT UNSIGNED NOT NULL DEFAULT 1,
   `is_enabled` TINYINT(1) NOT NULL DEFAULT 1,

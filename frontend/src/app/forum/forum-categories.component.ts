@@ -1,4 +1,4 @@
-import { Component, signal, effect, computed } from '@angular/core';
+import { Component, signal, computed, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ForumService, ForumCategory } from './forum.service';
 
@@ -33,6 +33,7 @@ import { ForumService, ForumCategory } from './forum.service';
 export class ForumCategoriesComponent {
   loading = signal(false);
   cats = signal<ForumCategory[]>([]);
+  @Output() selectCategory = new EventEmitter<ForumCategory>();
 
   constructor(private forum: ForumService){
     this.loading = this.forum.loadingCategories;
@@ -41,6 +42,6 @@ export class ForumCategoriesComponent {
   }
 
   open(cat:ForumCategory){
-    // TODO: navigate to topics view (router) or emit event
+    this.selectCategory.emit(cat);
   }
 }
