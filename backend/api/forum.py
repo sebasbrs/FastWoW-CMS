@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
-from .auth import require_logged, require_admin, get_current_user
-from ..db import fetch_one, fetch_all, execute
+from api.auth import require_logged, require_admin, get_current_user
+from db import fetch_one, fetch_all, execute
 import re
 
 router = APIRouter(prefix="/forum", tags=["forum"])

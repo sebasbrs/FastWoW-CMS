@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
-from .auth import require_logged, require_admin
-from ..db import fetch_one, fetch_all, execute, begin_transaction, tx_fetch_one, tx_execute, release_connection
+from api.auth import require_logged, require_admin
+from db import fetch_one, fetch_all, execute, begin_transaction, tx_fetch_one, tx_execute, release_connection
 import os, datetime, hmac, hashlib, json, time
 
 router = APIRouter(prefix="/donations", tags=["donations"]) 

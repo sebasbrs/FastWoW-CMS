@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
-from .auth import require_logged, require_admin, get_current_user
-from ..db import fetch_one, fetch_all, execute, db_pools, begin_transaction, release_connection, tx_execute, tx_fetch_one
-from ..config import get_soap_realm_config  # (ya no se usa como fallback; mantenido si se requiere más adelante)
+from api.auth import require_logged, require_admin, get_current_user
+from db import fetch_one, fetch_all, execute, db_pools, begin_transaction, release_connection, tx_execute, tx_fetch_one
+from config import get_soap_realm_config  # (ya no se usa como fallback; mantenido si se requiere más adelante)
 import aiohttp
 import asyncio
 import re

@@ -15,13 +15,14 @@
   <ng-container *ngIf="!isLogged(); else loggedBlock">
         <section class="widget">
           <h3>Acceso</h3>
-          <form (submit)="doLogin(); $event.preventDefault();" class="auth-form">
-            <input type="text" placeholder="Usuario" [(ngModel)]="loginData.username" name="lu" required />
-            <input type="password" placeholder="Contraseña" [(ngModel)]="loginData.password" name="lp" required />
-            <button type="submit">Login</button>
-          </form>
-          <a class="link-btn" routerLink="/register">Crear cuenta</a>
-          <a class="small-link" routerLink="/recover">Recuperar contraseña</a>
+          <div class="auth-links">
+            <a class="link-btn" routerLink="/login">Iniciar sesión</a>
+            <a class="link-btn secondary" routerLink="/register">Crear cuenta</a>
+            <div class="mini-links">
+              <a routerLink="/auth/password-recovery">Recuperar contraseña</a>
+              <a routerLink="/auth/email-verification">Verificar email</a>
+            </div>
+          </div>
         </section>
       </ng-container>
       <ng-template #loggedBlock>
@@ -36,6 +37,11 @@
                 <span class="cr">CR: {{ u.credits }}</span>
               </div>
             </div>
+          </div>
+          <div class="user-links">
+            <a routerLink="/auth/change-password" class="mini-link">Cambiar contraseña</a>
+            <a routerLink="/auth/change-email" class="mini-link">Cambiar email</a>
+            <a routerLink="/auth/email-verification" class="mini-link">Verificar email</a>
           </div>
           <button class="logout-btn" (click)="logout()">Logout</button>
         </section>

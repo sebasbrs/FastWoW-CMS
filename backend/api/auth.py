@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
 
-from ..db import fetch_one, execute
-from ..config import (
+from db import fetch_one, execute
+from config import (
     JWT_SECRET, JWT_ALGORITHM, JWT_EXP_SECONDS,
     SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_STARTTLS, EMAIL_FROM,
     PASSWORD_RESET_TOKEN_EXP_MIN, EMAIL_VERIFICATION_TOKEN_EXP_MIN
@@ -17,7 +17,7 @@ from email.message import EmailMessage
 from datetime import datetime, timedelta
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-router = APIRouter()
+router = APIRouter(prefix="/auth", tags=["auth"])
 security = HTTPBearer()
 
 
@@ -62,6 +62,10 @@ class EmailVerificationConfirmRequest(BaseModel):
 
 def _create_jwt(payload: dict) -> str:
     now = int(time.time())
+    # Asegurar que 'sub' (subject) sea string (requerido por la spec y PyJWT)
+    subj = payload.get('sub')
+    if subj is not None and not isinstance(subj, str):
+        payload = {**payload, 'sub': str(subj)}
     data = {"iat": now, "exp": now + JWT_EXP_SECONDS, **payload}
     token = jwt.encode(data, JWT_SECRET, algorithm=JWT_ALGORITHM)
     if isinstance(token, bytes):
@@ -109,8 +113,25 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+
+@router.get('/_debug_decode')
+async def debug_decode(request: Request):
+    """Endpoint de depuración: decodifica el JWT enviado en Authorization.
+    NO usar en producción (retirar después)."""
+    auth = request.headers.get('authorization') or request.headers.get('Authorization')
+    if not auth:
+        raise HTTPException(status_code=400, detail='Falta header Authorization')
+    parts = auth.split()
+    if len(parts) != 2:
+        raise HTTPException(status_code=400, detail='Formato Authorization inválido')
+    token = parts[1]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return {'ok': True, 'payload': payload}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f'Decode error: {e}')
 
 
 @router.get('/me')
@@ -247,7 +268,7 @@ async def login(req: LoginRequest):
         user_role = int(role_row.get("role")) if role_row and role_row.get("role") is not None else 1
     except Exception:
         user_role = 1
-    token = _create_jwt({"sub": row.get("id"), "username": username, "session": session_hex, "role": user_role})
+    token = _create_jwt({"sub": str(row.get("id")), "username": username, "session": session_hex, "role": user_role})
     return {"access_token": token, "token_type": "bearer"}
 
 

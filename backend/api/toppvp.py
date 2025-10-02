@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import Optional
-from ..db import fetch_all
+from db import fetch_all
 import aiomysql
 import asyncio
 

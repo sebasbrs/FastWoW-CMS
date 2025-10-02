@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from db import db_pools, fetch_one
@@ -14,6 +15,15 @@ from api.vote import router as vote_router
 from api.donations import router as donations_router
 
 app = FastAPI(title="FastWoW CMS Backend")
+
+# CORS para frontend Angular (localhost:4200)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:4200", "http://127.0.0.1:4200", "http://localhost"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class HealthResponse(BaseModel):

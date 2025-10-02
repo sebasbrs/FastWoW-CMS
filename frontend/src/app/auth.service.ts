@@ -50,4 +50,29 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     this._user.set(null);
   }
+
+  // ---- Endpoints adicionales ----
+  async changePassword(current_password: string, new_password: string){
+    return await firstValueFrom(this.http.post(`${API_BASE}/change_password`, { current_password, new_password }));
+  }
+
+  async changeEmail(new_email: string){
+    return await firstValueFrom(this.http.post(`${API_BASE}/change_email`, { new_email }));
+  }
+
+  async requestPasswordRecovery(username: string){
+    return await firstValueFrom(this.http.post(`${API_BASE}/password_recovery/request`, { username }));
+  }
+
+  async confirmPasswordRecovery(username: string, token: string, new_password: string){
+    return await firstValueFrom(this.http.post(`${API_BASE}/password_recovery/confirm`, { username, token, new_password }));
+  }
+
+  async requestEmailVerification(username: string){
+    return await firstValueFrom(this.http.post(`${API_BASE}/email_verification/request`, { username }));
+  }
+
+  async confirmEmailVerification(username: string, token: string){
+    return await firstValueFrom(this.http.post(`${API_BASE}/email_verification/confirm`, { username, token }));
+  }
 }

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from ..db import fetch_one
+from db import fetch_one
 import aiomysql
 
 router = APIRouter(prefix="/armory", tags=["armory"])

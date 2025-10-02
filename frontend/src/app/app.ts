@@ -1,12 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, CommonModule, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CommonModule, FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -16,9 +16,6 @@ export class App {
   get user(){ return this.auth.user; }
   get isLogged(){ return this.auth.isLogged; }
   
-  loginData = { username: '', password: '' };
-  registerData = { username: '', password: '', email: '' };
-  showRegister = false;
 
   constructor(private auth: AuthService){}
 
@@ -55,19 +52,6 @@ export class App {
     return side==='alliance'? Math.round((a/total)*100) : Math.round((h/total)*100);
   }
 
-  async doLogin(){
-    if(!this.loginData.username || !this.loginData.password) return;
-  await this.auth.login(this.loginData.username, this.loginData.password);
-    this.loginData.password = '';
-  }
-
-  async doRegister(){
-    const { username, password, email } = this.registerData;
-    if(!username || !password) return;
-  await this.auth.register(username, password, email || undefined);
-    this.showRegister = false;
-    this.registerData = { username: '', password: '', email: '' };
-  }
 
   logout(){
     this.auth.logout();

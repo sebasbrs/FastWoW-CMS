@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from ..db import fetch_one, fetch_all
+from db import fetch_one, fetch_all
 import aiomysql
 import asyncio
 

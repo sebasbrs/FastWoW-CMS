@@ -5,3 +5,4 @@ aiomysql
 python-dotenv
 PyJWT
 aiohttp
+cryptography

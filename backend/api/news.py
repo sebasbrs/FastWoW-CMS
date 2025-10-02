@@ -4,8 +4,8 @@ from typing import Optional, List, Any
 import re
 import datetime
 
-from ..db import fetch_one, fetch_all, execute
-from .auth import get_current_user, require_logged, require_admin  # reuse session + role validation
+from db import fetch_one, fetch_all, execute
+from api.auth import get_current_user, require_logged, require_admin  # reuse session + role validation
 
 router = APIRouter()
 

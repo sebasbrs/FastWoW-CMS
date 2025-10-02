@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from typing import Optional
-from .auth import require_admin, require_logged
-from ..db import fetch_one, fetch_all, execute, begin_transaction, release_connection, tx_execute, tx_fetch_one
+from api.auth import require_admin, require_logged
+from db import fetch_one, fetch_all, execute, begin_transaction, release_connection, tx_execute, tx_fetch_one
 import datetime
 
 router = APIRouter(prefix="/vote", tags=["vote"]) 
