@@ -113,6 +113,33 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+@router.get('/me')
+async def me(user: dict = Depends(get_current_user)):
+    """Devuelve datos básicos del usuario autenticado para el frontend.
+    Incluye username, credits, vote_points y gravatar.
+    """
+    username = user.get('username')
+    if not username:
+        raise HTTPException(status_code=400, detail='Invalid token payload')
+    try:
+        acct = await fetch_one('cms', 'SELECT credits, vote_points FROM account WHERE username = %s', (username,))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Error leyendo cuenta cms: {e}')
+    try:
+        auth_acct = await fetch_one('auth', 'SELECT email FROM account WHERE username = %s', (username,))
+    except Exception:
+        auth_acct = None
+    email = (auth_acct.get('email') if auth_acct else '') or ''
+    grav_hash = hashlib.md5(email.strip().lower().encode('utf-8')).hexdigest()
+    gravatar_url = f"https://www.gravatar.com/avatar/{grav_hash}?d=identicon&s=96"
+    return {
+        'username': username,
+        'credits': int((acct or {}).get('credits') or 0),
+        'vote_points': int((acct or {}).get('vote_points') or 0),
+        'gravatar': gravatar_url
+    }
+
+
 def _compute_verifier(username: str, password: str):
     g = 7
     N = int("894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", 16)
