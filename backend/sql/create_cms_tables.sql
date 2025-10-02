@@ -20,6 +20,35 @@ CREATE TABLE IF NOT EXISTS `account` (
   KEY `idx_account_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Vote sites (top sites)
+CREATE TABLE IF NOT EXISTS `vote_sites` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(120) NOT NULL,
+  `url` VARCHAR(500) NOT NULL,
+  `cooldown_minutes` INT UNSIGNED NOT NULL DEFAULT 720, -- 12h por defecto
+  `points_reward` INT UNSIGNED NOT NULL DEFAULT 1,
+  `is_enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `position` INT NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_vote_sites_enabled` (`is_enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Vote logs (when a user triggers a vote claim)
+CREATE TABLE IF NOT EXISTS `vote_logs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(32) NOT NULL,
+  `site_id` INT UNSIGNED NOT NULL,
+  `claimed_points` INT UNSIGNED NOT NULL DEFAULT 0,
+  `next_available_at` DATETIME NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_vote_logs_user_site` (`username`, `site_id`),
+  KEY `idx_vote_logs_next` (`next_available_at`),
+  CONSTRAINT `fk_vote_logs_site` FOREIGN KEY (`site_id`) REFERENCES `vote_sites`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Table to register realms and the connection information for their characters DB
 -- This allows CMS to connect to each realm's characters database to fetch online counts, races, etc.
 CREATE TABLE IF NOT EXISTS `realms` (
