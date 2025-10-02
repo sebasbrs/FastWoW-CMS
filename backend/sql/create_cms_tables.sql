@@ -20,6 +20,29 @@ CREATE TABLE IF NOT EXISTS `account` (
   KEY `idx_account_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Donation / credit purchase payments (initially PayPal)
+CREATE TABLE IF NOT EXISTS `donation_payments` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(32) NOT NULL,
+  `gateway` VARCHAR(32) NOT NULL, -- 'paypal', 'bold', etc
+  `external_id` VARCHAR(100) NOT NULL, -- PayPal order id
+  `status` VARCHAR(32) NOT NULL DEFAULT 'CREATED', -- CREATED|APPROVED|COMPLETED|FAILED|CANCELLED
+  `amount` DECIMAL(10,2) NOT NULL,
+  `currency` VARCHAR(10) NOT NULL DEFAULT 'USD',
+  `credits_rate` INT UNSIGNED NOT NULL DEFAULT 0, -- credits per 1 unit of currency at creation
+  `credits_granted` INT UNSIGNED NOT NULL DEFAULT 0,
+  `granted_at` DATETIME NULL,
+  `webhook_verified` TINYINT(1) NOT NULL DEFAULT 0,
+  `raw_create_response` TEXT NULL,
+  `raw_capture_response` TEXT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_donation_external` (`external_id`),
+  KEY `idx_donation_user` (`username`),
+  KEY `idx_donation_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Vote sites (top sites)
 CREATE TABLE IF NOT EXISTS `vote_sites` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,

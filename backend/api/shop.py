@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from .auth import require_logged, require_admin, get_current_user
 from ..db import fetch_one, fetch_all, execute, db_pools, begin_transaction, release_connection, tx_execute, tx_fetch_one
-from ..config import get_soap_realm_config  # legacy env fallback (will use DB first)
+from ..config import get_soap_realm_config  # (ya no se usa como fallback; mantenido si se requiere más adelante)
 import aiohttp
 import asyncio
 import re
@@ -412,9 +412,6 @@ async def _deliver_purchase_via_soap(purchase_row: dict, purchase_items: list):
         return
     realm_id = purchase_row.get('realm_id')
     soap_cfg = await _load_realm_soap_config(realm_id)
-    if not soap_cfg:
-        # fallback a variables de entorno (get_soap_realm_config) si existen
-        soap_cfg = get_soap_realm_config(realm_id)
     if not soap_cfg or not soap_cfg.get('enabled'):
         await _update_purchase_soap(purchase_row['id'], False, 'SOAP deshabilitado o config ausente')
         return

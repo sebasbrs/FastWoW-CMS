@@ -11,6 +11,7 @@ from api.profile import router as profile_router
 from api.armory import router as armory_router
 from api.shop import router as shop_router
 from api.vote import router as vote_router
+from api.donations import router as donations_router
 
 app = FastAPI(title="FastWoW CMS Backend")
 
@@ -40,6 +41,7 @@ app.include_router(profile_router)
 app.include_router(armory_router)
 app.include_router(shop_router)
 app.include_router(vote_router)
+app.include_router(donations_router)
 
 
 @app.get("/", response_model=dict)
